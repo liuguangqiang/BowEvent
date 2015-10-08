@@ -17,22 +17,6 @@ public class MethodHandler {
         this.method = method;
     }
 
-    public Object getTarget() {
-        return target;
-    }
-
-    public void setTarget(Object target) {
-        this.target = target;
-    }
-
-    public Method getMethod() {
-        return method;
-    }
-
-    public void setMethod(Method method) {
-        this.method = method;
-    }
-
     public void invoke(Object parameter) {
         try {
             method.invoke(target, parameter);
