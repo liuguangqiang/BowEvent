@@ -16,7 +16,6 @@
 
 package com.liuguangqiang.bowevent;
 
-import android.util.Log;
 
 import java.lang.reflect.Method;
 import java.util.HashMap;
@@ -77,17 +76,13 @@ public final class SubscribeFinder {
 
         for (Method method : declaredMethods) {
             if (method.isAnnotationPresent(Subscribe.class)) {
-                Log.i(TAG, "subscribed : " + method.toString());
-
                 Class<?>[] parameterTypes = method.getParameterTypes();
-                Class<?> paramType = parameterTypes[0];
+                Class<?> type = parameterTypes[0];
 
-                Log.i(TAG, "paramType : " + paramType);
-
-                Set<Method> methodSet = subscriberMethods.get(paramType);
+                Set<Method> methodSet = subscriberMethods.get(type);
                 if (methodSet == null) {
                     methodSet = new HashSet<>();
-                    subscriberMethods.put(paramType, methodSet);
+                    subscriberMethods.put(type, methodSet);
                 }
                 methodSet.add(method);
             }
