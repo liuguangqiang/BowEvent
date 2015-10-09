@@ -24,18 +24,52 @@ import java.lang.reflect.Method;
  */
 public class MethodHandler {
 
+    /**
+     * A object that hold the method.
+     */
     private Object target;
 
+    /**
+     * Handler method
+     */
     private Method method;
 
+    /**
+     * If the tag is not null or empty , the method just only be invoked with a correct tag.
+     */
+    private String tag;
+
     public MethodHandler(Object target, Method method) {
+        if (target == null) throw new NullPointerException("the target cannot be null.");
+
+        if (method == null) throw new NullPointerException("the method cannot be null.");
+
         this.target = target;
         this.method = method;
+
+        Subscribe subscribe = method.getAnnotation(Subscribe.class);
+        if (subscribe != null) {
+            tag = subscribe.tag();
+        }
     }
 
-    public void invoke(Object parameter) {
+    /**
+     * Return the tag of handler.
+     *
+     * @return
+     */
+    public String getTag() {
+        return tag;
+    }
+
+    /**
+     * Invoke the method.
+     *
+     * @param arg the arguments to the method
+     */
+    public void invoke(Object arg) {
         try {
-            method.invoke(target, parameter);
+            method.invoke(target, arg);
         } catch (IllegalAccessException e) {
             e.printStackTrace();
         } catch (InvocationTargetException e) {
