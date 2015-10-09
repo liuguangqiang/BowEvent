@@ -16,9 +16,12 @@
 
 package com.liuguangqiang.bowevent;
 
-import android.util.Log;
+import android.support.annotation.NonNull;
 
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -30,7 +33,7 @@ public final class BowEvent {
 
     private static BowEvent instance = new BowEvent();
 
-    private HashMap<Class<?>, Set<MethodHandler>> handlerMap = new HashMap<>();
+    private final HashMap<Class<?>, Set<MethodHandler>> handlerMap = new HashMap<>();
 
     private BowEvent() {
     }
@@ -47,22 +50,74 @@ public final class BowEvent {
         HashMap<Class<?>, Set<MethodHandler>> methodEvents = SubscribeFinder.findSubscribedMethods(target);
 
         for (Class<?> type : methodEvents.keySet()) {
-            Log.i(TAG, "listening type : " + type.toString());
-
             Set<MethodHandler> methodEventSet = methodEvents.get(type);
             handlerMap.put(type, methodEventSet);
         }
     }
 
-    public void post(Object object) {
-        Log.i(TAG, "post type : " + object.getClass());
+    /**
+     * Post an event to all methods annotated with {@link Subscribe}.
+     *
+     * @param event event to post
+     */
+    public void post(@NonNull Object event) {
+        post("", event);
+    }
 
-        Set<MethodHandler> handlerSet = handlerMap.get(object.getClass());
-        if (handlerSet != null && !handlerSet.isEmpty()) {
-            for (MethodHandler handler : handlerSet) {
-                handler.invoke(object);
+    /**
+     * Post an event to all methods annotated with {@link Subscribe} and tagged with {@code tag}.
+     *
+     * @param tag   subscribed with a tag.
+     * @param event event to post
+     */
+    public void post(@NonNull String tag, @NonNull Object event) {
+        if (tag == null) throw new NullPointerException("The tag must not be null.");
+
+        if (event == null) throw new NullPointerException("The event must not be null.");
+
+        Set<Class<?>> classesSet = loadClasses(event.getClass());
+        if (classesSet != null && !classesSet.isEmpty()) {
+            for (Class<?> clazz : classesSet) {
+                dispatch(clazz, tag, event);
             }
         }
+    }
+
+    private void dispatch(Class<?> clazz, String tag, Object event) {
+        Set<MethodHandler> handlerSet = handlerMap.get(clazz);
+        if (handlerSet != null && !handlerSet.isEmpty()) {
+            for (MethodHandler handler : handlerSet) {
+                dispatch(tag, handler, event);
+            }
+        }
+    }
+
+    private void dispatch(String tag, MethodHandler handler, Object event) {
+        if (handler.getTag().equals(tag))
+            handler.invoke(event);
+    }
+
+    /**
+     * Return all supper classes of a class.
+     *
+     * @param targetClass
+     * @return
+     */
+    private Set<Class<?>> loadClasses(Class<?> targetClass) {
+        List<Class<?>> parents = new LinkedList<>();
+        Set<Class<?>> classes = new HashSet<>();
+        parents.add(targetClass);
+
+        while (!parents.isEmpty()) {
+            Class<?> clazz = parents.remove(0);
+            classes.add(clazz);
+
+            Class<?> parent = clazz.getSuperclass();
+            if (parent != null) {
+                parents.add(parent);
+            }
+        }
+        return classes;
     }
 
 }

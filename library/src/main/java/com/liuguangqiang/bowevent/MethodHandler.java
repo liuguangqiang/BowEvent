@@ -40,9 +40,9 @@ public class MethodHandler {
     private String tag;
 
     public MethodHandler(Object target, Method method) {
-        if (target == null) throw new NullPointerException("the target cannot be null.");
+        if (target == null) throw new NullPointerException("the target must not be null.");
 
-        if (method == null) throw new NullPointerException("the method cannot be null.");
+        if (method == null) throw new NullPointerException("the method must not be null.");
 
         this.target = target;
         this.method = method;
