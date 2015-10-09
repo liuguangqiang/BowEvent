@@ -1,4 +1,5 @@
 apply plugin: 'com.android.library'
+apply from: 'https://raw.github.com/chrisbanes/gradle-mvn-push/master/gradle-mvn-push.gradle'
 
 android {
     compileSdkVersion 22
@@ -16,6 +17,27 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+}
+
+task buildJar(dependsOn: ['build'], type: Jar) {
+
+    baseName = "bowevent"
+    version = "0.1.0"
+    classifier = "beta"
+    extension = "jar"
+
+    //需打包的资源所在的路径集
+    def srcClassDir = [project.buildDir.absolutePath + "/intermediates/classes/release"];
+    //初始化资源路径集
+    from srcClassDir
+
+    //去除路径集下部分的资源
+    exclude "**/BuildConfig.class"
+    exclude "**/BuildConfig\$*.class"
+    exclude "**/R.class"
+    exclude "**/R\$*.class"
+
+    include "**/*.class"
 }
 
 dependencies {
