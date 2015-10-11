@@ -77,4 +77,13 @@ public class MethodHandler {
         }
     }
 
+    @Override
+    public String toString() {
+        return "MethodHandler{" +
+                "target=" + target +
+                ", method=" + method +
+                ", tag='" + tag + '\'' +
+                '}';
+    }
+
 }
