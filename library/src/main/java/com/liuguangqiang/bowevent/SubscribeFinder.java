@@ -17,6 +17,8 @@
 package com.liuguangqiang.bowevent;
 
 
+import android.util.Log;
+
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -72,10 +74,15 @@ public final class SubscribeFinder {
      */
     private static HashMap<Class<?>, Set<Method>> findSubscribedMethods(Class<?> targetClass) {
         HashMap<Class<?>, Set<Method>> subscriberMethods = new HashMap<>();
-        Method[] declaredMethods = targetClass.getDeclaredMethods();
+        loadMethods(subscriberMethods, targetClass);
+        return subscriberMethods;
+    }
 
+    private static void loadMethods(HashMap<Class<?>, Set<Method>> subscriberMethods, Class<?> targetClass) {
+        Method[] declaredMethods = targetClass.getDeclaredMethods();
         for (Method method : declaredMethods) {
             if (method.isAnnotationPresent(Subscribe.class)) {
+                Log.i(TAG, "Subscribe method : " + method);
                 Class<?>[] parameterTypes = method.getParameterTypes();
                 Class<?> type = parameterTypes[0];
 
@@ -87,7 +94,17 @@ public final class SubscribeFinder {
                 methodSet.add(method);
             }
         }
-        return subscriberMethods;
+        Class<?> superClass = targetClass.getSuperclass();
+        if (!isSystemClass(superClass)) {
+            loadMethods(subscriberMethods, superClass);
+        }
+    }
+
+    private static boolean isSystemClass(Class<?> clazz) {
+        String name = clazz.getName();
+        if (name.startsWith("java.") || name.startsWith("javax.") || name.startsWith("android."))
+            return true;
+        return false;
     }
 
 }

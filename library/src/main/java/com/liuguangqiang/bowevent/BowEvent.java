@@ -17,11 +17,9 @@
 package com.liuguangqiang.bowevent;
 
 import android.support.annotation.NonNull;
+import android.util.Log;
 
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Set;
 
 /**
@@ -33,26 +31,39 @@ public final class BowEvent {
 
     private static BowEvent instance = new BowEvent();
 
-    private final HashMap<Class<?>, Set<MethodHandler>> handlerMap = new HashMap<>();
+    private HashMap<Class<?>, Set<MethodHandler>> handlerMap;
+    private HashMap<Class<?>, Boolean> registerObjects = new HashMap<>();
 
     private BowEvent() {
+        handlerMap = new HashMap<>();
     }
 
     public static BowEvent getInstance() {
         return instance;
     }
 
-    public void unregister(Object target) {
+    public void register(Object target) {
+        Class<?> targetClass = target.getClass();
+        if (!registerObjects.containsKey(targetClass)) {
+            registerObjects.put(targetClass, true);
+            HashMap<Class<?>, Set<MethodHandler>> methodEvents = SubscribeFinder.findSubscribedMethods(target);
 
+            for (Class<?> type : methodEvents.keySet()) {
+                Set<MethodHandler> methodEventSet = methodEvents.get(type);
+                if (handlerMap.containsKey(type)) {
+                    handlerMap.get(type).addAll(methodEventSet);
+                } else {
+                    handlerMap.put(type, methodEventSet);
+                }
+            }
+        }
     }
 
-    public void register(Object target) {
-        HashMap<Class<?>, Set<MethodHandler>> methodEvents = SubscribeFinder.findSubscribedMethods(target);
+    public void unregister(Object target) {
+        Class<?> targetClass = target.getClass();
+        registerObjects.remove(targetClass);
 
-        for (Class<?> type : methodEvents.keySet()) {
-            Set<MethodHandler> methodEventSet = methodEvents.get(type);
-            handlerMap.put(type, methodEventSet);
-        }
+
     }
 
     /**
@@ -75,17 +86,14 @@ public final class BowEvent {
 
         if (event == null) throw new NullPointerException("The event must not be null.");
 
-        Set<Class<?>> classesSet = loadClasses(event.getClass());
-        if (classesSet != null && !classesSet.isEmpty()) {
-            for (Class<?> clazz : classesSet) {
-                dispatch(clazz, tag, event);
-            }
-        }
+        dispatch(event.getClass(), tag, event);
     }
 
     private void dispatch(Class<?> clazz, String tag, Object event) {
         Set<MethodHandler> handlerSet = handlerMap.get(clazz);
         if (handlerSet != null && !handlerSet.isEmpty()) {
+            Log.i(TAG, handlerSet.toString());
+
             for (MethodHandler handler : handlerSet) {
                 dispatch(tag, handler, event);
             }
@@ -93,31 +101,9 @@ public final class BowEvent {
     }
 
     private void dispatch(String tag, MethodHandler handler, Object event) {
+        Log.i(TAG, "dispatch--->" + handler.toString());
         if (handler.getTag().equals(tag))
             handler.invoke(event);
-    }
-
-    /**
-     * Return all supper classes of a class.
-     *
-     * @param targetClass
-     * @return
-     */
-    private Set<Class<?>> loadClasses(Class<?> targetClass) {
-        List<Class<?>> parents = new LinkedList<>();
-        Set<Class<?>> classes = new HashSet<>();
-        parents.add(targetClass);
-
-        while (!parents.isEmpty()) {
-            Class<?> clazz = parents.remove(0);
-            classes.add(clazz);
-
-            Class<?> parent = clazz.getSuperclass();
-            if (parent != null) {
-                parents.add(parent);
-            }
-        }
-        return classes;
     }
 
 }
