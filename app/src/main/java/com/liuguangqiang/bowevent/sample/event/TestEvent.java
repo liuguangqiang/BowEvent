@@ -5,6 +5,13 @@ package com.liuguangqiang.bowevent.sample.event;
  */
 public class TestEvent {
 
-    public String title;
+    public String title = "Test Event";
+
+    public TestEvent() {
+    }
+
+    public TestEvent(String title) {
+        this.title = title;
+    }
 
 }
