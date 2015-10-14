@@ -17,9 +17,9 @@
 package com.liuguangqiang.bowevent;
 
 import android.support.annotation.NonNull;
-import android.util.Log;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Set;
 
 /**
@@ -31,39 +31,68 @@ public final class BowEvent {
 
     private static BowEvent instance = new BowEvent();
 
-    private HashMap<Class<?>, Set<MethodHandler>> handlerMap;
-    private HashMap<Class<?>, Boolean> registerObjects = new HashMap<>();
+    /**
+     * All subscribed methods.
+     * <p/>
+     * key : event type
+     * value : method
+     */
+    private HashMap<Class<?>, Set<MethodHandler>> handlersMap;
+
+    /**
+     * All subscribed objects.
+     * <p/>
+     * key : the class of subscriber
+     * value : boolean
+     */
+    private HashMap<Class<?>, Boolean> subscribers;
 
     private BowEvent() {
-        handlerMap = new HashMap<>();
+        handlersMap = new HashMap<>();
+        subscribers = new HashMap<>();
     }
 
     public static BowEvent getInstance() {
         return instance;
     }
 
-    public void register(Object target) {
-        Class<?> targetClass = target.getClass();
-        if (!registerObjects.containsKey(targetClass)) {
-            registerObjects.put(targetClass, true);
-            HashMap<Class<?>, Set<MethodHandler>> methodEvents = SubscribeFinder.findSubscribedMethods(target);
+    public boolean isRegistered(@NonNull Object subscriber) {
+        return subscribers.containsKey(subscriber.getClass());
+    }
+
+    public void register(@NonNull Object subscriber) {
+        if (!isRegistered(subscriber)) {
+            Class<?> targetClass = subscriber.getClass();
+            subscribers.put(targetClass, true);
+            HashMap<Class<?>, Set<MethodHandler>> methodEvents = SubscribeFinder.findSubscribedMethods(subscriber);
 
             for (Class<?> type : methodEvents.keySet()) {
                 Set<MethodHandler> methodEventSet = methodEvents.get(type);
-                if (handlerMap.containsKey(type)) {
-                    handlerMap.get(type).addAll(methodEventSet);
+                if (handlersMap.containsKey(type)) {
+                    handlersMap.get(type).addAll(methodEventSet);
                 } else {
-                    handlerMap.put(type, methodEventSet);
+                    handlersMap.put(type, methodEventSet);
                 }
             }
         }
     }
 
-    public void unregister(Object target) {
-        Class<?> targetClass = target.getClass();
-        registerObjects.remove(targetClass);
-
-
+    public void unregister(@NonNull Object subscriber) {
+        if (isRegistered(subscriber)) {
+            subscribers.remove(subscriber.getClass());
+            Set<MethodHandler> methodHandlerSet;
+            Set<MethodHandler> removedHandlers;
+            for (Class<?> clazz : handlersMap.keySet()) {
+                methodHandlerSet = handlersMap.get(clazz);
+                removedHandlers = new HashSet<>();
+                for (MethodHandler handler : methodHandlerSet) {
+                    if (handler.getSubscriber().equals(subscriber)) {
+                        removedHandlers.add(handler);
+                    }
+                }
+                methodHandlerSet.removeAll(removedHandlers);
+            }
+        }
     }
 
     /**
@@ -90,18 +119,15 @@ public final class BowEvent {
     }
 
     private void dispatch(Class<?> clazz, String tag, Object event) {
-        Set<MethodHandler> handlerSet = handlerMap.get(clazz);
-        if (handlerSet != null && !handlerSet.isEmpty()) {
-            Log.i(TAG, handlerSet.toString());
-
-            for (MethodHandler handler : handlerSet) {
+        Set<MethodHandler> handlers = handlersMap.get(clazz);
+        if (handlers != null && !handlers.isEmpty()) {
+            for (MethodHandler handler : handlers) {
                 dispatch(tag, handler, event);
             }
         }
     }
 
     private void dispatch(String tag, MethodHandler handler, Object event) {
-        Log.i(TAG, "dispatch--->" + handler.toString());
         if (handler.getTag().equals(tag))
             handler.invoke(event);
     }
