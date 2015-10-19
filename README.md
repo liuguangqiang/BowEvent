@@ -3,6 +3,35 @@ A simple event bus for android
 
 ##Usage
 
+### Subscribe and Publish
+Register 
+
+```
+BowEvent.getInstance().register(this);
+```
+
+Subscribe
+
+```
+@Subscribe
+public void receiveEvent(SomeEvent event) {}
+```
+
+```
+BowEvent.getInstance().post(event);
+```
+
+Subscribe with tag
+
+```
+@Subscribe(tag = "tag")
+public void receiveEvent(SomeEvent event) {}
+```
+
+```
+BowEvent.getInstance().post(tag, event);
+```
+
 ### Gradle
 ```
 dependencies {
@@ -19,7 +48,6 @@ dependencies {
   	<type>aar</type>
 </dependency>
 ```
-
 ## License
 
     Copyright 2015 Eric Liu
