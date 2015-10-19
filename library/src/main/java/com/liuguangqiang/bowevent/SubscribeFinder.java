@@ -16,10 +16,8 @@
 
 package com.liuguangqiang.bowevent;
 
-
-import android.util.Log;
-
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -82,7 +80,10 @@ public final class SubscribeFinder {
         Method[] declaredMethods = targetClass.getDeclaredMethods();
         for (Method method : declaredMethods) {
             if (method.isAnnotationPresent(Subscribe.class)) {
-                Log.i(TAG, "Subscribe method : " + method);
+                if (method.getModifiers() != Modifier.PUBLIC) {
+                    throw new IllegalArgumentException(String.format("Subscribed method %s must be public.", method));
+                }
+
                 Class<?>[] parameterTypes = method.getParameterTypes();
                 Class<?> type = parameterTypes[0];
 
