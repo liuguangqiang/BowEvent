@@ -27,7 +27,7 @@ public class MethodHandler {
     /**
      * A object that hold the method.
      */
-    private Object target;
+    private Object subscriber;
 
     /**
      * Handler method
@@ -40,17 +40,37 @@ public class MethodHandler {
     private String tag;
 
     public MethodHandler(Object target, Method method) {
-        if (target == null) throw new NullPointerException("the target must not be null.");
+        if (target == null) throw new NullPointerException("the subscriber must not be null.");
 
         if (method == null) throw new NullPointerException("the method must not be null.");
 
-        this.target = target;
+        this.subscriber = target;
         this.method = method;
 
         Subscribe subscribe = method.getAnnotation(Subscribe.class);
         if (subscribe != null) {
             tag = subscribe.tag();
         }
+    }
+
+    public Object getSubscriber() {
+        return subscriber;
+    }
+
+    public void setSubscriber(Object subscriber) {
+        this.subscriber = subscriber;
+    }
+
+    public Method getMethod() {
+        return method;
+    }
+
+    public void setMethod(Method method) {
+        this.method = method;
+    }
+
+    public void setTag(String tag) {
+        this.tag = tag;
     }
 
     /**
@@ -69,7 +89,7 @@ public class MethodHandler {
      */
     public void invoke(Object arg) {
         try {
-            method.invoke(target, arg);
+            method.invoke(subscriber, arg);
         } catch (IllegalAccessException e) {
             e.printStackTrace();
         } catch (InvocationTargetException e) {
@@ -80,7 +100,7 @@ public class MethodHandler {
     @Override
     public String toString() {
         return "MethodHandler{" +
-                "target=" + target +
+                "subscriber=" + subscriber +
                 ", method=" + method +
                 ", tag='" + tag + '\'' +
                 '}';

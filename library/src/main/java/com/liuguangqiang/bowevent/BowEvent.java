@@ -33,7 +33,7 @@ public final class BowEvent {
 
     /**
      * All subscribed methods.
-     * <p/>
+     * <p>
      * key : event type
      * value : method
      */
@@ -41,7 +41,7 @@ public final class BowEvent {
 
     /**
      * All subscribed objects.
-     * <p/>
+     * <p>
      * key : the class of subscriber
      * value : boolean
      */
