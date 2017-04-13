@@ -16,10 +16,6 @@
 
 package com.liuguangqiang.bowevent.sample;
 
-import android.content.BroadcastReceiver;
-import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
@@ -31,18 +27,18 @@ import com.liuguangqiang.bowevent.sample.event.AppEvent;
 
 public class BaseActivity extends AppCompatActivity {
 
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        BowEvent.getInstance().register(this);
-    }
+  @Override
+  protected void onCreate(Bundle savedInstanceState) {
+    super.onCreate(savedInstanceState);
+    BowEvent.getInstance().register(this);
+  }
 
-    @Subscribe
-    public void closeAll(AppEvent event) {
-        Log.i("BowEvent", "closeAll");
-        if (event != null && event.close) {
-            finish();
-        }
+  @Subscribe
+  public void closeAll(AppEvent event) {
+    Log.i("BowEvent", "closeAll");
+    if (event != null && event.close) {
+      finish();
     }
+  }
 
 }

@@ -28,84 +28,90 @@ import java.util.Set;
  */
 public final class SubscribeFinder {
 
-    private static final String TAG = "BowEvent";
+  private static final String TAG = "BowEvent";
 
-    private static final HashMap<Class<?>, HashMap<Class<?>, Set<Method>>> CACHE = new HashMap<>();
+  private static final HashMap<Class<?>, HashMap<Class<?>, Set<Method>>> CACHE = new HashMap<>();
 
-    private static HashMap<Class<?>, Set<Method>> get(Class<?> clazz) {
-        return CACHE.get(clazz);
+  private static HashMap<Class<?>, Set<Method>> get(Class<?> clazz) {
+    return CACHE.get(clazz);
+  }
+
+  private static void put(Class<?> clazz, HashMap<Class<?>, Set<Method>> methods) {
+    CACHE.put(clazz, methods);
+  }
+
+  /**
+   * Find all methods subscribed.
+   */
+  public static HashMap<Class<?>, Set<MethodHandler>> findSubscribedMethods(Object target) {
+    Class<?> targetClass = target.getClass();
+    HashMap<Class<?>, Set<MethodHandler>> handlers = new HashMap<>();
+    HashMap<Class<?>, Set<Method>> methods = get(targetClass);
+
+    if (methods == null) {
+      methods = findSubscribedMethods(targetClass);
+      put(targetClass, methods);
     }
 
-    private static void put(Class<?> clazz, HashMap<Class<?>, Set<Method>> methods) {
-        CACHE.put(clazz, methods);
+    //load all method events.
+    for (Map.Entry<Class<?>, Set<Method>> entry : methods.entrySet()) {
+      Set<MethodHandler> handlerSet = new HashSet<>();
+      for (Method method : entry.getValue()) {
+        handlerSet.add(new MethodHandler(target, method));
+      }
+      if (!handlerSet.isEmpty()) {
+        handlers.put(entry.getKey(), handlerSet);
+      }
     }
 
-    /**
-     * Find all methods subscribed.
-     */
-    public static HashMap<Class<?>, Set<MethodHandler>> findSubscribedMethods(Object target) {
-        Class<?> targetClass = target.getClass();
-        HashMap<Class<?>, Set<MethodHandler>> handlers = new HashMap<>();
-        HashMap<Class<?>, Set<Method>> methods = get(targetClass);
+    return handlers;
+  }
 
-        if (methods == null) {
-            methods = findSubscribedMethods(targetClass);
-            put(targetClass, methods);
+  /**
+   * Find all methods annotated with {@link Subscribe}
+   */
+  private static HashMap<Class<?>, Set<Method>> findSubscribedMethods(Class<?> targetClass) {
+    HashMap<Class<?>, Set<Method>> subscriberMethods = new HashMap<>();
+    findAnnotatedMethods(subscriberMethods, targetClass);
+    return subscriberMethods;
+  }
+
+  private static void findAnnotatedMethods(HashMap<Class<?>, Set<Method>> subscriberMethods,
+      Class<?> targetClass) {
+    Method[] declaredMethods = targetClass.getDeclaredMethods();
+    for (Method method : declaredMethods) {
+      if (method.isAnnotationPresent(Subscribe.class)) {
+        if (method.getModifiers() != Modifier.PUBLIC) {
+          throw new IllegalArgumentException(
+              String.format("Subscribed method %s must be public.", method));
         }
 
-        //load all method events.
-        for (Map.Entry<Class<?>, Set<Method>> entry : methods.entrySet()) {
-            Set<MethodHandler> handlerSet = new HashSet<>();
-            for (Method method : entry.getValue()) {
-                handlerSet.add(new MethodHandler(target, method));
-            }
-            if (!handlerSet.isEmpty()) {
-                handlers.put(entry.getKey(), handlerSet);
-            }
+        Class<?>[] parameterTypes = method.getParameterTypes();
+        Class<?> type = parameterTypes[0];
+
+        Set<Method> methodSet = subscriberMethods.get(type);
+        if (methodSet == null) {
+          //Have not keep this event.
+          methodSet = new HashSet<>();
+          subscriberMethods.put(type, methodSet);
         }
-
-        return handlers;
+        methodSet.add(method);
+      }
     }
 
-    /**
-     * Find all methods annotated with {@link Subscribe}
-     */
-    private static HashMap<Class<?>, Set<Method>> findSubscribedMethods(Class<?> targetClass) {
-        HashMap<Class<?>, Set<Method>> subscriberMethods = new HashMap<>();
-        loadMethods(subscriberMethods, targetClass);
-        return subscriberMethods;
+    //Load all subscribed methods of its super class.
+    Class<?> superClass = targetClass.getSuperclass();
+    if (!isSystemClass(superClass)) {
+      findAnnotatedMethods(subscriberMethods, superClass);
     }
+  }
 
-    private static void loadMethods(HashMap<Class<?>, Set<Method>> subscriberMethods, Class<?> targetClass) {
-        Method[] declaredMethods = targetClass.getDeclaredMethods();
-        for (Method method : declaredMethods) {
-            if (method.isAnnotationPresent(Subscribe.class)) {
-                if (method.getModifiers() != Modifier.PUBLIC) {
-                    throw new IllegalArgumentException(String.format("Subscribed method %s must be public.", method));
-                }
-
-                Class<?>[] parameterTypes = method.getParameterTypes();
-                Class<?> type = parameterTypes[0];
-
-                Set<Method> methodSet = subscriberMethods.get(type);
-                if (methodSet == null) {
-                    methodSet = new HashSet<>();
-                    subscriberMethods.put(type, methodSet);
-                }
-                methodSet.add(method);
-            }
-        }
-        Class<?> superClass = targetClass.getSuperclass();
-        if (!isSystemClass(superClass)) {
-            loadMethods(subscriberMethods, superClass);
-        }
+  private static boolean isSystemClass(Class<?> clazz) {
+    String name = clazz.getName();
+    if (name.startsWith("java.") || name.startsWith("javax.") || name.startsWith("android.")) {
+      return true;
     }
-
-    private static boolean isSystemClass(Class<?> clazz) {
-        String name = clazz.getName();
-        if (name.startsWith("java.") || name.startsWith("javax.") || name.startsWith("android."))
-            return true;
-        return false;
-    }
+    return false;
+  }
 
 }

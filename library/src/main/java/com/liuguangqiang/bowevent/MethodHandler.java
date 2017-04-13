@@ -20,90 +20,78 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
 /**
+ * A container for keeping the subscriber and the method.
+ *
  * Created by Eric on 15/10/8.
  */
 public class MethodHandler {
 
-    /**
-     * A object that hold the method.
-     */
-    private Object subscriber;
+  /**
+   * A object that hold the method.
+   */
+  private Object subscriber;
 
-    /**
-     * Handler method
-     */
-    private Method method;
+  /**
+   * The method will be invoked.
+   */
+  private Method method;
 
-    /**
-     * If the tag is not null or empty , the method just only be invoked with a correct tag.
-     */
-    private String tag;
+  /**
+   * If the tag is not null or empty , the method just only be invoked with a specific tag.
+   */
+  private String tag;
 
-    public MethodHandler(Object target, Method method) {
-        if (target == null) throw new NullPointerException("the subscriber must not be null.");
-
-        if (method == null) throw new NullPointerException("the method must not be null.");
-
-        this.subscriber = target;
-        this.method = method;
-
-        Subscribe subscribe = method.getAnnotation(Subscribe.class);
-        if (subscribe != null) {
-            tag = subscribe.tag();
-        }
+  public MethodHandler(Object subscriber, Method method) {
+    if (subscriber == null) {
+      throw new NullPointerException("the subscriber must not be null.");
     }
 
-    public Object getSubscriber() {
-        return subscriber;
+    if (method == null) {
+      throw new NullPointerException("the method must not be null.");
     }
 
-    public void setSubscriber(Object subscriber) {
-        this.subscriber = subscriber;
-    }
+    this.subscriber = subscriber;
+    this.method = method;
 
-    public Method getMethod() {
-        return method;
+    Subscribe subscribe = method.getAnnotation(Subscribe.class);
+    if (subscribe != null) {
+      tag = subscribe.tag();
     }
+  }
 
-    public void setMethod(Method method) {
-        this.method = method;
-    }
+  public Object getSubscriber() {
+    return subscriber;
+  }
 
-    public void setTag(String tag) {
-        this.tag = tag;
-    }
+  /**
+   * Return the tag of handler.
+   */
+  public String getTag() {
+    return tag;
+  }
 
-    /**
-     * Return the tag of handler.
-     *
-     * @return
-     */
-    public String getTag() {
-        return tag;
+  /**
+   * Invoke the method.
+   *
+   * @param arg the arguments to the method
+   */
+  public void invoke(Object arg) {
+    try {
+      method.invoke(subscriber, arg);
+    } catch (IllegalAccessException e) {
+      e.printStackTrace();
+    } catch (InvocationTargetException e) {
+      e.printStackTrace();
     }
+  }
 
-    /**
-     * Invoke the method.
-     *
-     * @param arg the arguments to the method
-     */
-    public void invoke(Object arg) {
-        try {
-            method.invoke(subscriber, arg);
-        } catch (IllegalAccessException e) {
-            e.printStackTrace();
-        } catch (InvocationTargetException e) {
-            e.printStackTrace();
-        }
-    }
-
-    @Override
-    public String toString() {
-        return "MethodHandler{" +
-                "subscriber=" + subscriber +
-                ", method=" + method +
-                ", tag='" + tag + '\'' +
-                '}';
-    }
+  @Override
+  public String toString() {
+    return "MethodHandler{" +
+        "subscriber=" + subscriber +
+        ", method=" + method +
+        ", tag='" + tag + '\'' +
+        '}';
+  }
 
 }

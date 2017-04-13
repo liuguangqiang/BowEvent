@@ -28,10 +28,8 @@ import java.lang.annotation.Target;
 @Target(ElementType.METHOD)
 public @interface Subscribe {
 
-    /**
-     * Tagged a method annotated with {@link Subscribe}
-     *
-     * @return
-     */
-    String tag() default "";
+  /**
+   * Tagged a method annotated with {@link Subscribe}
+   */
+  String tag() default "";
 }

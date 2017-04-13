@@ -23,28 +23,42 @@ import android.view.View;
 import android.widget.Button;
 
 import com.liuguangqiang.bowevent.BowEvent;
+import com.liuguangqiang.bowevent.Subscribe;
 import com.liuguangqiang.bowevent.sample.event.AppEvent;
 import com.liuguangqiang.bowevent.sample.event.TestEvent;
 
 public class TestActivity extends AppCompatActivity {
 
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_test);
-        BowEvent.getInstance().register(this);
-        BowEvent.getInstance().post(new TestEvent("1212121212"));
+  private String TAG = "BowEvent";
 
-        Button btnClose = (Button) findViewById(R.id.btn_close);
-        btnClose.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Log.i("BowEvent", "post close all");
-                AppEvent event = new AppEvent();
-                event.close = true;
-                BowEvent.getInstance().post(event);
-            }
-        });
-    }
+  @Override
+  protected void onCreate(Bundle savedInstanceState) {
+    super.onCreate(savedInstanceState);
+    setContentView(R.layout.activity_test);
+    BowEvent.getInstance().register(this);
+    BowEvent.getInstance().post(new TestEvent("1212121212"));
+
+    Button btnClose = (Button) findViewById(R.id.btn_close);
+    btnClose.setOnClickListener(new View.OnClickListener() {
+      @Override
+      public void onClick(View v) {
+        Log.i("BowEvent", "post close all");
+        AppEvent event = new AppEvent();
+        event.close = true;
+        BowEvent.getInstance().post(event);
+      }
+    });
+  }
+
+  @Override
+  protected void onDestroy() {
+    super.onDestroy();
+    BowEvent.getInstance().unregister(this);
+  }
+
+  @Subscribe
+  public void testEvent(TestEvent event) {
+    Log.i(TAG, "TestActivity 接收到结果 test() : " + event.title);
+  }
 
 }

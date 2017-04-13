@@ -14,34 +14,41 @@ import com.liuguangqiang.bowevent.sample.event.TestEvent;
 
 public class MainActivity extends BaseActivity {
 
-    private static final String TAG = "BowEvent";
+  private static final String TAG = "BowEvent";
 
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
-        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
+  @Override
+  protected void onCreate(Bundle savedInstanceState) {
+    super.onCreate(savedInstanceState);
+    setContentView(R.layout.activity_main);
+    Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+    setSupportActionBar(toolbar);
 
-        BowEvent.getInstance().register(this);
+    BowEvent bowEvent = BowEvent.getInstance();
+    bowEvent.register(this);
 
-        FloatingActionButton floatingActionButton = (FloatingActionButton) findViewById(R.id.fab);
-        floatingActionButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                startActivity(new Intent(getApplicationContext(), TestActivity.class));
-            }
-        });
-    }
+    FloatingActionButton floatingActionButton = (FloatingActionButton) findViewById(R.id.fab);
+    floatingActionButton.setOnClickListener(new View.OnClickListener() {
+      @Override
+      public void onClick(View v) {
+        startActivity(new Intent(getApplicationContext(), TestActivity.class));
+      }
+    });
+  }
 
-    @Subscribe(tag = "test")
-    public void testByTag(AEvent event) {
-        Log.i(TAG, "接收到结果 testByTag() : " + event.title);
-    }
+  @Override
+  protected void onDestroy() {
+    super.onDestroy();
+    BowEvent.getInstance().unregister(this);
+  }
 
-    @Subscribe
-    public void test(TestEvent event) {
-        Log.i(TAG, "接收到结果 test() : " + event.title);
-    }
+  @Subscribe(tag = "test")
+  public void testByTag(AEvent event) {
+    Log.i(TAG, "接收到结果 testByTag() : " + event.title);
+  }
+
+  @Subscribe
+  public void test(TestEvent event) {
+    Log.i(TAG, "接收到结果 test() : " + event.title);
+  }
 
 }

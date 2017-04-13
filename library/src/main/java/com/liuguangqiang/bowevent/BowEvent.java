@@ -1,5 +1,5 @@
 /*
- *  Copyright 2015 Eric Liu
+ *  Copyright 2015-2017 Eric Liu
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@ package com.liuguangqiang.bowevent;
 import android.support.annotation.NonNull;
 
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Set;
 
 /**
@@ -27,109 +27,128 @@ import java.util.Set;
  */
 public final class BowEvent {
 
-    private static final String TAG = "BowEvent";
+  private static final String TAG = "BowEvent";
 
-    private static BowEvent instance = new BowEvent();
+  private static volatile BowEvent instance;
 
-    /**
-     * All subscribed methods.
-     * <p>
-     * key : event type
-     * value : method
-     */
-    private HashMap<Class<?>, Set<MethodHandler>> handlersMap;
+  /**
+   * All subscribed methods.
+   * <p>
+   * key : the type of a event, like "com.liuguangqiang.bowevent.sample.event.TestEvent"
+   * value : the subscribed method handler.
+   */
+  private HashMap<Class<?>, Set<MethodHandler>> subscribedMethodHandlers;
 
-    /**
-     * All subscribed objects.
-     * <p>
-     * key : the class of subscriber
-     * value : boolean
-     */
-    private HashMap<Class<?>, Boolean> subscribers;
+  /**
+   * All subscribed objects.
+   * <p>
+   * key : the class of subscriber, like "com.liuguangqiang.bowevent.sample.MainActivity"
+   * value : boolean
+   */
+  private HashMap<Class<?>, Boolean> subscribers;
 
-    private BowEvent() {
-        handlersMap = new HashMap<>();
-        subscribers = new HashMap<>();
+  private BowEvent() {
+    subscribedMethodHandlers = new HashMap<>();
+    subscribers = new HashMap<>();
+  }
+
+  /**
+   * Return the global instance.
+   */
+  public static BowEvent getInstance() {
+    if (instance == null) {
+      synchronized (BowEvent.class) {
+        instance = new BowEvent();
+      }
+    }
+    return instance;
+  }
+
+  public boolean isRegistered(@NonNull Object subscriber) {
+    return subscribers.containsKey(subscriber.getClass());
+  }
+
+  public void register(@NonNull Object subscriber) {
+    if (!isRegistered(subscriber)) {
+      Class<?> targetClass = subscriber.getClass();
+      subscribers.put(targetClass, true);
+      findSubscribedMethods(subscriber);
+    }
+  }
+
+  private void findSubscribedMethods(Object subscriber) {
+    //Subscribed methods.
+    HashMap<Class<?>, Set<MethodHandler>> methodHandlers = SubscribeFinder
+        .findSubscribedMethods(subscriber);
+
+    for (Class<?> eventType : methodHandlers.keySet()) {
+      if (subscribedMethodHandlers.containsKey(eventType)) {
+        subscribedMethodHandlers.get(eventType).addAll(methodHandlers.get(eventType));
+      } else {
+        subscribedMethodHandlers.put(eventType, methodHandlers.get(eventType));
+      }
+    }
+  }
+
+  public void unregister(@NonNull Object subscriber) {
+    if (isRegistered(subscriber)) {
+      subscribers.remove(subscriber.getClass());
+
+      for (Class<?> clazz : subscribedMethodHandlers.keySet()) {
+        unregister(subscribedMethodHandlers.get(clazz), subscriber);
+      }
+    }
+  }
+
+  private void unregister(@NonNull Set<MethodHandler> methodHandlers, @NonNull Object subscriber) {
+    Iterator<MethodHandler> iterator = methodHandlers.iterator();
+    while (iterator.hasNext()) {
+      if (iterator.next().getSubscriber().equals(subscriber)) {
+        iterator.remove();
+      }
+    }
+  }
+
+  /**
+   * Post an event to all methods annotated with {@link Subscribe}.
+   *
+   * @param event event to post
+   */
+  public void post(@NonNull Object event) {
+    post("", event);
+  }
+
+  /**
+   * Post an event to all methods annotated with {@link Subscribe} and tagged with {@code tag}.
+   *
+   * @param tag subscribed with a tag.
+   * @param event event to post
+   */
+  public void post(@NonNull String tag, @NonNull Object event) {
+    if (tag == null) {
+      throw new NullPointerException("The tag must not be null.");
     }
 
-    public static BowEvent getInstance() {
-        return instance;
+    if (event == null) {
+      throw new NullPointerException("The event must not be null.");
     }
 
-    public boolean isRegistered(@NonNull Object subscriber) {
-        return subscribers.containsKey(subscriber.getClass());
+    dispatch(event.getClass(), tag, event);
+  }
+
+  private void dispatch(Class<?> clazz, String tag, Object event) {
+    Set<MethodHandler> handlers = subscribedMethodHandlers.get(clazz);
+    if (handlers != null && !handlers.isEmpty()) {
+      for (MethodHandler handler : handlers) {
+        dispatch(tag, handler, event);
+      }
     }
+  }
 
-    public void register(@NonNull Object subscriber) {
-        if (!isRegistered(subscriber)) {
-            Class<?> targetClass = subscriber.getClass();
-            subscribers.put(targetClass, true);
-            HashMap<Class<?>, Set<MethodHandler>> methodEvents = SubscribeFinder.findSubscribedMethods(subscriber);
-
-            for (Class<?> type : methodEvents.keySet()) {
-                Set<MethodHandler> methodEventSet = methodEvents.get(type);
-                if (handlersMap.containsKey(type)) {
-                    handlersMap.get(type).addAll(methodEventSet);
-                } else {
-                    handlersMap.put(type, methodEventSet);
-                }
-            }
-        }
+  private void dispatch(String tag, MethodHandler handler, Object event) {
+    if (handler.getTag().equals(tag)) {
+      handler.invoke(event);
     }
-
-    public void unregister(@NonNull Object subscriber) {
-        if (isRegistered(subscriber)) {
-            subscribers.remove(subscriber.getClass());
-            Set<MethodHandler> methodHandlerSet;
-            Set<MethodHandler> removedHandlers;
-            for (Class<?> clazz : handlersMap.keySet()) {
-                methodHandlerSet = handlersMap.get(clazz);
-                removedHandlers = new HashSet<>();
-                for (MethodHandler handler : methodHandlerSet) {
-                    if (handler.getSubscriber().equals(subscriber)) {
-                        removedHandlers.add(handler);
-                    }
-                }
-                methodHandlerSet.removeAll(removedHandlers);
-            }
-        }
-    }
-
-    /**
-     * Post an event to all methods annotated with {@link Subscribe}.
-     *
-     * @param event event to post
-     */
-    public void post(@NonNull Object event) {
-        post("", event);
-    }
-
-    /**
-     * Post an event to all methods annotated with {@link Subscribe} and tagged with {@code tag}.
-     *
-     * @param tag   subscribed with a tag.
-     * @param event event to post
-     */
-    public void post(@NonNull String tag, @NonNull Object event) {
-        if (tag == null) throw new NullPointerException("The tag must not be null.");
-
-        if (event == null) throw new NullPointerException("The event must not be null.");
-
-        dispatch(event.getClass(), tag, event);
-    }
-
-    private void dispatch(Class<?> clazz, String tag, Object event) {
-        Set<MethodHandler> handlers = handlersMap.get(clazz);
-        if (handlers != null && !handlers.isEmpty()) {
-            for (MethodHandler handler : handlers) {
-                dispatch(tag, handler, event);
-            }
-        }
-    }
-
-    private void dispatch(String tag, MethodHandler handler, Object event) {
-        if (handler.getTag().equals(tag))
-            handler.invoke(event);
-    }
+  }
 
 }
